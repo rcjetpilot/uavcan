@@ -238,12 +238,17 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 #if UAVCAN_STM32_NUM_IFACES > 1
     CanIface if1_;
 #endif
+    bool initialized_by_me_[UAVCAN_STM32_NUM_IFACES];
+    uavcan::uint8_t num_ifaces_;
+    uavcan::uint8_t if_int_to_gl_index_[UAVCAN_STM32_NUM_IFACES];
+
 
     virtual uavcan::int16_t select(uavcan::CanSelectMasks& inout_masks,
                                    const uavcan::CanFrame* (& pending_tx)[uavcan::MaxCanIfaces],
                                    uavcan::MonotonicTime blocking_deadline);
 
     static void initOnce();
+    static void initOnce(uavcan::uint8_t can_number, bool enable_irqs);
 
 public:
     template <unsigned RxQueueCapacity>
@@ -272,10 +277,11 @@ public:
      * Returns negative value if failed (e.g. invalid bitrate).
      */
     int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode);
+    int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, uavcan::uint8_t can_number);
 
     virtual CanIface* getIface(uavcan::uint8_t iface_index);
 
-    virtual uavcan::uint8_t getNumIfaces() const { return UAVCAN_STM32_NUM_IFACES; }
+    virtual uavcan::uint8_t getNumIfaces() const { return num_ifaces_; }
 
     /**
      * Whether at least one iface had at least one successful IO since previous call of this method.
@@ -312,6 +318,11 @@ public:
     int init(uavcan::uint32_t bitrate)
     {
         return driver.init(bitrate, CanIface::NormalMode);
+    }
+
+    int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, uavcan::uint8_t can_number)
+    {
+        return driver.init(bitrate, mode, can_number);
     }
 
     /**
